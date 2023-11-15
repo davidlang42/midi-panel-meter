@@ -1,0 +1,57 @@
+buy hardware:
+- https://core-electronics.com.au/32x16-rgb-led-matrix-panel-6mm-pitch.html
+- https://core-electronics.com.au/raspberry-pi-zero-2-w-wireless.html
+- https://www.ebay.com.au/itm/292254916725
+- https://www.ebay.com.au/itm/384792640528
+- https://www.jaycar.com.au/32gb-micro-sdxc-class-10-reads-90mb-s-writes-30mb-s/p/XC5016
+- 2A@5V usb psu, usb a-micro cable
+
+# hardware wiring as per: https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/wiring.md
+# unused: https://learn.adafruit.com/connecting-a-16x32-rgb-led-matrix-panel-to-a-raspberry-pi/overview
+# see photos on 15th Nov 2023
+
+# flash os raspberry pi lite 64 bit
+# enable ssh: pi/password
+# enable wifi: ssid/password
+# set hostname: pi-meter
+
+# increase swap so that rust will install (https://gist.github.com/tstellanova/0a6d8a70acc58a0d5be13ebaa7c935d4?permalink_comment_id=4647130#gistcomment-4647130)
+sudo dphys-swapfile swapoff
+sudo nano /etc/dphys-swapfile
+# change CONF_SWAPSIZE=100 to CONF_SWAPSIZE=512
+# save & exit
+sudo dphys-swapfile setup
+sudo dphys-swapfile swapon
+
+# disable sound which breaks the led driver
+sudo nano /boot/config.txt
+# remove: dtparam=audio=on
+# add: dtparam=audio=off
+# save & exit
+sudo nano /boot/cmdline.txt
+# add:  isolcpus=3
+# save & exit
+cat <<EOF | sudo tee /etc/modprobe.d/blacklist-rgb-matrix.conf
+blacklist snd_bcm2835
+EOF
+sudo update-initramfs -u
+sudo reboot
+
+# clone the led driver
+sudo apt update
+sudo apt install git
+git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
+cd rpi-rgb-led-matrix
+
+# run demo to test hardware
+make -C examples-api-use
+sudo examples-api-use/demo -D0
+
+# setup rust and my repo
+cd ~
+curl https://sh.rustup.rs -sSf | sh
+git clone https://github.com/davidlang42/midi-panel-meter.git
+cd midi-panel-meter
+cargo build --release
+
+# TODO: add second wifi, run on startup

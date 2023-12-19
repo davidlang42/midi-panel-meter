@@ -40,7 +40,8 @@ impl PanelMeter {
                 };
             },
             MidiMessage::ControlChange(ch, ControlFunction::DAMPER_PEDAL, v) => {
-                self.damper_cc[ch.index() as usize] = v.into() > 64;
+                let v_u8: u8 = v.into();
+                self.damper_cc[ch.index() as usize] = v_u8 > 64;
             },
             MidiMessage::ControlChange(ch, ControlFunction::EXPRESSION_CONTROLLER, v) => {
                 self.expression_cc[ch.index() as usize] = v;
@@ -72,7 +73,7 @@ impl PanelMeter {
         // notes in the middle
         const OFFSET: i32 = 8;
         for i in 0..self.notes.len() {
-            if let Some(note) = self.notes[i] {
+            if let Some(note) = &self.notes[i] {
                 note.draw(canvas, OFFSET + i as i32);
             }
         }

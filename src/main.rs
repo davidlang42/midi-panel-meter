@@ -3,7 +3,6 @@ mod midi;
 
 use meter::PanelMeter;
 use midi::InputDevice;
-use rpi_led_matrix::LedCanvas;
 use rpi_led_matrix::{LedMatrix, LedColor, LedFont, LedMatrixOptions};
 use chrono::Local;
 use std::path::Path;

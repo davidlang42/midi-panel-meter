@@ -39,15 +39,13 @@ fn main() {
         canvas = matrix.swap(canvas);
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
             if let Ok(mut midi) = InputDevice::open(&device, true) {
-                //let mut panel = PanelMeter::new();
+                let mut panel = PanelMeter::new();
                 while let Ok(message) = midi.read() {
-                    // panel.handle(message);
-                    // panel.draw(&mut canvas);
-                    //canvas = matrix.swap(canvas);
+                    panel.handle(message);
+                    panel.draw(&mut canvas);
+                    canvas = matrix.swap(canvas);
                 }
                 canvas = show_error(canvas, &matrix, &font, "done")
-            } else {
-                canvas = show_error(canvas, &matrix, &font, "fail")
             }
         }
         let ms = updated.elapsed().as_millis();

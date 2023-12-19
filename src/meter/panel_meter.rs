@@ -47,8 +47,12 @@ impl PanelMeter {
 
     pub fn draw(&self, canvas: &mut LedCanvas) {
         canvas.clear();
-        if self.tick == 0 {
-            canvas.set(32, 1, &LedColor { red: 255, blue: 255, green: 0 });
+        if self.tick < 8 {
+            canvas.set(4, 8, &LedColor { red: 255, green: 0, blue: 0 });
+        } else if self.tick < 16 {
+            canvas.set(4, 8, &LedColor { red: 0, green: 255, blue: 0 });
+        } else if self.tick < 24 {
+            canvas.set(4, 8, &LedColor { red: 0, green: 0, blue: 255 });
         }
         //TODO
     }

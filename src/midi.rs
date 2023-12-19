@@ -60,13 +60,13 @@ impl InputDevice {
         })
     }
 
-    pub fn read(&mut self) -> Result<MidiMessage<'static>, mpsc::RecvError> {
+    pub fn read(&mut self) -> Result<MidiMessage<'static>, Box<dyn Error>> {
         for thread in &self.threads {
             if thread.is_finished() {
-                panic!("InputDevice thread finished");
+                return Err("InputDevice thread finished".into());
             }
         }
-        self.receiver.recv()
+        self.receiver.recv().map_err(|e| e.into())
     }
 
     fn read_into_queue(f: &mut fs::File, tx: mpsc::Sender<MidiMessage>, include_clock_ticks: bool, rewrite_note_zero_as_off: bool) {

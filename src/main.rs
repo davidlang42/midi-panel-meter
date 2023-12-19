@@ -3,6 +3,7 @@ mod midi;
 
 use meter::PanelMeter;
 use midi::InputDevice;
+use rpi_led_matrix::LedCanvas;
 use rpi_led_matrix::{LedMatrix, LedColor, LedFont, LedMatrixOptions};
 use chrono::Local;
 use std::path::Path;
@@ -37,24 +38,16 @@ fn main() {
         canvas.draw_text(&font, &time, 1, 11, &color, 0, false);
         canvas = matrix.swap(canvas);
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
-            canvas.clear();
-            canvas.draw_text(&font, "1", 1, 11, &color, 0, false);
-            canvas = matrix.swap(canvas);
-            thread::sleep(Duration::from_millis(1000));
-            let mut midi = InputDevice::open(&device, true).unwrap();
-            canvas.clear();
-            canvas.draw_text(&font, "2", 1, 11, &color, 0, false);
-            canvas = matrix.swap(canvas);
-            thread::sleep(Duration::from_millis(1000));
-            let mut panel = PanelMeter::new();
-            canvas.clear();
-            canvas.draw_text(&font, "3", 1, 11, &color, 0, false);
-            canvas = matrix.swap(canvas);
-            thread::sleep(Duration::from_millis(1000));
-            while let Ok(message) = midi.read() {
-                panel.handle(message);
-                panel.draw(&mut canvas);
-                canvas = matrix.swap(canvas);
+            if let Ok(mut midi) = InputDevice::open(&device, true) {
+                //let mut panel = PanelMeter::new();
+                while let Ok(message) = midi.read() {
+                    // panel.handle(message);
+                    // panel.draw(&mut canvas);
+                    //canvas = matrix.swap(canvas);
+                }
+                canvas = show_error(canvas, &matrix, &font, "done")
+            } else {
+                canvas = show_error(canvas, &matrix, &font, "fail")
             }
         }
         let ms = updated.elapsed().as_millis();
@@ -62,6 +55,12 @@ fn main() {
             thread::sleep(Duration::from_millis((1000 - ms).try_into().unwrap()));
         }
     }
+}
+
+fn show_error(mut canvas: LedCanvas, matrix: &LedMatrix, font: &LedFont, text: &str) -> LedCanvas {
+    canvas.clear();
+    canvas.draw_text(font, text, 1, 11, &LedColor { red: 255, green: 255, blue: 255 }, 0, false);
+    matrix.swap(canvas)
 }
 
 fn list_files(root: &str, prefix: &str) -> Result<Vec<String>, Box<dyn Error>> {

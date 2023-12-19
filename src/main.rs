@@ -45,7 +45,6 @@ fn main() {
                     panel.draw(&mut canvas);
                     canvas = matrix.swap(canvas);
                 }
-                canvas = show_error(canvas, &matrix, &font, "done")
             }
         }
         let ms = updated.elapsed().as_millis();

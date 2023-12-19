@@ -30,7 +30,7 @@ impl PanelMeter {
         }
     }
 
-    pub fn handle(&mut self, message: MidiMessage) {
+    pub fn handle(&mut self, message: MidiMessage<'static>) {
         match message {
             MidiMessage::TimingClock => {
                 self.tick = if self.tick == midi::TICKS_PER_BEAT {

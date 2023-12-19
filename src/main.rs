@@ -37,8 +37,20 @@ fn main() {
         canvas.draw_text(&font, &time, 1, 11, &color, 0, false);
         canvas = matrix.swap(canvas);
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
+            canvas.clear();
+            canvas.draw_text(&font, "1", 1, 11, &color, 0, false);
+            canvas = matrix.swap(canvas);
+            thread::sleep(Duration::from_millis(1000));
             let mut midi = InputDevice::open(&device, true).unwrap();
+            canvas.clear();
+            canvas.draw_text(&font, "2", 1, 11, &color, 0, false);
+            canvas = matrix.swap(canvas);
+            thread::sleep(Duration::from_millis(1000));
             let mut panel = PanelMeter::new();
+            canvas.clear();
+            canvas.draw_text(&font, "3", 1, 11, &color, 0, false);
+            canvas = matrix.swap(canvas);
+            thread::sleep(Duration::from_millis(1000));
             while let Ok(message) = midi.read() {
                 panel.handle(message);
                 panel.draw(&mut canvas);

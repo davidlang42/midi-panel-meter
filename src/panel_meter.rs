@@ -40,13 +40,13 @@ impl PanelMeter {
                 };
             },
             MidiMessage::ControlChange(ch, ControlFunction::DAMPER_PEDAL, v) => {
-                self.damper_cc[ch.index()] = v > 64;
+                self.damper_cc[ch.index() as usize] = v.into() > 64;
             },
             MidiMessage::ControlChange(ch, ControlFunction::EXPRESSION_CONTROLLER, v) => {
-                self.expression_cc[ch.index()] = v;
+                self.expression_cc[ch.index() as usize] = v;
             },
             MidiMessage::ControlChange(ch, ControlFunction::CHANNEL_VOLUME, v) => {
-                self.volume_cc[ch.index()] = v;
+                self.volume_cc[ch.index() as usize] = v;
             },
             _ => {
                 //TODO handle notes
@@ -72,7 +72,9 @@ impl PanelMeter {
         // notes in the middle
         const OFFSET: i32 = 8;
         for i in 0..self.notes.len() {
-            self.notes[i].draw(&mut canvas, OFFSET + i);
+            if let Some(note) = self.notes[i] {
+                note.draw(canvas, OFFSET + i as i32);
+            }
         }
         // top right corner flash on beat
         if self.tick < 6 {
@@ -97,16 +99,16 @@ impl PanelMeter {
         if v == 127 {
             canvas.draw_line(x, 0, x, 15, color);
         } else {
-            let full_pixels = v / 8;
-            let last_pixel = v % 8 * 32;
+            let full_pixels = v as i32 / 8;
+            let last_pixel = v as usize % 8 * 32;
             if full_pixels > 0 {
                 canvas.draw_line(x, 16 - full_pixels, x, 15, color)
             }
             if last_pixel > 0 {
                 let last_color = LedColor {
-                    red: color.red as usize * last_pixel / 256,
-                    green: color.green as usize * last_pixel / 256,
-                    blue: color.blue as usize * last_pixel / 256
+                    red: (color.red as usize * last_pixel / 256) as u8,
+                    green: (color.green as usize * last_pixel / 256) as u8,
+                    blue: (color.blue as usize * last_pixel / 256) as u8
                 };
                 canvas.set(x, 15 - full_pixels, &last_color)
             }

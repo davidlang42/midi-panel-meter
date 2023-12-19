@@ -39,12 +39,14 @@ fn main() {
         canvas = matrix.swap(canvas);
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
             if let Ok(mut midi) = InputDevice::open(&device, true) {
+                // midi found, show midi panel
                 let mut panel = PanelMeter::new();
                 while let Ok(message) = midi.read() {
                     panel.handle(message);
                     panel.draw(&mut canvas);
                     canvas = matrix.swap(canvas);
                 }
+                // midi disconnected, return to clock
             }
         }
         let ms = updated.elapsed().as_millis();
@@ -52,12 +54,6 @@ fn main() {
             thread::sleep(Duration::from_millis((1000 - ms).try_into().unwrap()));
         }
     }
-}
-
-fn show_error(mut canvas: LedCanvas, matrix: &LedMatrix, font: &LedFont, text: &str) -> LedCanvas {
-    canvas.clear();
-    canvas.draw_text(font, text, 1, 11, &LedColor { red: 255, green: 255, blue: 255 }, 0, false);
-    matrix.swap(canvas)
 }
 
 fn list_files(root: &str, prefix: &str) -> Result<Vec<String>, Box<dyn Error>> {

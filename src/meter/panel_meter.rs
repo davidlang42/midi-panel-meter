@@ -49,7 +49,7 @@ impl PanelMeter {
 
     pub fn draw(&self, canvas: &mut LedCanvas) {
         canvas.clear();
-        if self.tick == 0 {
+        if self.tick < 6 {
             for x in 29..32 {
                 for y in 0..3 {
                     canvas.set(x, y, &Self::WHITE);

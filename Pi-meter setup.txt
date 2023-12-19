@@ -54,4 +54,10 @@ git clone https://github.com/davidlang42/midi-panel-meter.git
 cd midi-panel-meter
 cargo build --release
 
+# to check code on non-pi linux
+#https://medium.com/swlh/compiling-rust-for-raspberry-pi-arm-922b55dbb050
+sudo apt install gcc-arm-linux-gnueabihf
+rustup target add armv7-unknown-linux-gnueabihf
+cargo check --target=armv7-unknown-linux-gnueabihf
+
 # TODO: add second wifi, run on startup

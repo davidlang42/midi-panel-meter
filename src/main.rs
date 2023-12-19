@@ -1,8 +1,10 @@
 mod meter;
+mod midi;
 
+use meter::PanelMeter;
+use midi::InputDevice;
 use rpi_led_matrix::{LedMatrix, LedColor, LedFont, LedMatrixOptions};
 use chrono::Local;
-use std::ops::AddAssign;
 use std::path::Path;
 use std::time::Duration;
 use std::thread;
@@ -35,10 +37,13 @@ fn main() {
         canvas.draw_text(&font, &time, 1, 11, &color, 0, false);
         canvas = matrix.swap(canvas);
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
-            canvas.clear();
-            canvas.draw_text(&font, &device, 1, 11, &color, 0, false);
-            canvas = matrix.swap(canvas);
-            thread::sleep(Duration::from_millis(3000));
+            let mut midi = InputDevice::open(&device, true).unwrap();
+            let mut panel = PanelMeter::new();
+            while let Ok(message) = midi.read() {
+                panel.handle(message);
+                panel.draw(&mut canvas);
+                canvas = matrix.swap(canvas);
+            }
         }
         let ms = updated.elapsed().as_millis();
         if ms < 1000 {

@@ -39,7 +39,7 @@ fn main() {
         canvas = matrix.swap(canvas);
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
             if let Ok(mut midi) = InputDevice::open(&device, true) {
-                // midi found, show midi panel
+                // midi connected, show midi panel
                 let mut panel = PanelMeter::new();
                 while let Ok(message) = midi.read() {
                     panel.handle(message);

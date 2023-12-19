@@ -43,6 +43,7 @@ fn main() {
                 let mut panel = PanelMeter::new();
                 while let Ok(message) = midi.read() {
                     panel.handle(message);
+                    //TODO skip drawing if > max refresh rate, or handle in separate thread?
                     panel.draw(&mut canvas);
                     canvas = matrix.swap(canvas);
                 }

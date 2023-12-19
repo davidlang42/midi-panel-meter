@@ -1,5 +1,5 @@
 use rpi_led_matrix::{LedCanvas, LedColor};
-use wmidi::{U7, MidiMessage};
+use wmidi::{U7, MidiMessage, ControlFunction};
 use crate::midi;
 
 use super::note_slot::NoteSlot;
@@ -39,8 +39,17 @@ impl PanelMeter {
                     self.tick + 1
                 };
             },
+            MidiMessage::ControlChange(ch, ControlFunction::DAMPER_PEDAL, v) => {
+                self.damper_cc[ch.index()] = v > 64;
+            },
+            MidiMessage::ControlChange(ch, ControlFunction::EXPRESSION_CONTROLLER, v) => {
+                self.expression_cc[ch.index()] = v;
+            },
+            MidiMessage::ControlChange(ch, ControlFunction::CHANNEL_VOLUME, v) => {
+                self.volume_cc[ch.index()] = v;
+            },
             _ => {
-                //TODO
+                //TODO notes
             }
         }
     }
@@ -61,7 +70,7 @@ impl PanelMeter {
         Self::draw_value(canvas, self.volume_cc[1], 5, &Self::CH2);
         Self::draw_value(canvas, self.volume_cc[2], 6, &Self::CH3);
         // notes in the middle
-        //TODO
+        //TODO notes
         // top right corner flash on beat
         if self.tick < 6 {
             for x in 29..32 {

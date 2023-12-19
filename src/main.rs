@@ -28,7 +28,7 @@ fn main() {
             format!("{}", date.format("%H %M"))
         };
         canvas.clear();
-        canvas.draw_text(&font, &time, 1, 12, &color, 0, false);
+        canvas.draw_text(&font, &time, 1, 11, &color, 0, false);
         canvas = matrix.swap(canvas);
         thread::sleep(Duration::from_millis(1000));
         //TODO check for midi

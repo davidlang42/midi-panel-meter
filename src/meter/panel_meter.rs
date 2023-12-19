@@ -45,14 +45,16 @@ impl PanelMeter {
         }
     }
 
+    const WHITE: LedColor = LedColor { red: 255, green: 255, blue: 255 };
+
     pub fn draw(&self, canvas: &mut LedCanvas) {
         canvas.clear();
-        if self.tick < 8 {
-            canvas.set(4, 8, &LedColor { red: 255, green: 0, blue: 0 });
-        } else if self.tick < 16 {
-            canvas.set(4, 8, &LedColor { red: 0, green: 255, blue: 0 });
-        } else if self.tick < 24 {
-            canvas.set(4, 8, &LedColor { red: 0, green: 0, blue: 255 });
+        if self.tick == 0 {
+            for x in 29..32 {
+                for y in 0..3 {
+                    canvas.set(x, y, &Self::WHITE);
+                }
+            }
         }
         //TODO
     }

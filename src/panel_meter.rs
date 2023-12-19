@@ -49,7 +49,7 @@ impl PanelMeter {
                 self.volume_cc[ch.index()] = v;
             },
             _ => {
-                //TODO notes
+                //TODO handle notes
             }
         }
     }
@@ -70,7 +70,10 @@ impl PanelMeter {
         Self::draw_value(canvas, self.volume_cc[1], 5, &Self::CH2);
         Self::draw_value(canvas, self.volume_cc[2], 6, &Self::CH3);
         // notes in the middle
-        //TODO notes
+        const OFFSET: i32 = 8;
+        for i in 0..self.notes.len() {
+            self.notes[i].draw(&mut canvas, OFFSET + i);
+        }
         // top right corner flash on beat
         if self.tick < 6 {
             for x in 29..32 {

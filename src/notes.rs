@@ -193,11 +193,35 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         }
     }
 
-    fn shift_up(&mut self, i: usize) -> bool {
-        todo!()
+    fn shift_up(&mut self, lower: usize) -> bool {
+        let mut gap = None;
+        for s in lower..N {
+            if self.slots[s].is_none() {
+                gap = Some(s);
+                break;
+            }
+        }
+        if let Some(upper) = gap {
+            self.slots[lower..(upper + 1)].rotate_right(1);
+            true
+        } else {
+            false
+        }
     }
 
-    fn shift_down(&mut self, i: usize) -> bool {
-        todo!()
+    fn shift_down(&mut self, upper: usize) -> bool {
+        let mut gap = None;
+        for s in (0..(upper + 1)).rev() {
+            if self.slots[s].is_none() {
+                gap = Some(s);
+                break;
+            }
+        }
+        if let Some(lower) = gap {
+            self.slots[lower..(upper + 1)].rotate_left(1);
+            true
+        } else {
+            false
+        }
     }
 }

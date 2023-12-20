@@ -1,12 +1,12 @@
 use rpi_led_matrix::{LedCanvas, LedColor};
-use wmidi::{Note, Velocity, Channel};
+use wmidi::{Note, Velocity, Channel, U7};
 
 use crate::helper::{add_assign, scale};
 
 #[derive(Debug)]
 pub struct NoteSlot<const C: usize> {
-    note: Note,
-    channels: [Velocity; C]
+    pub note: Note,
+    pub channels: [Velocity; C]
 }
 
 impl<const C: usize> NoteSlot<C> {
@@ -84,6 +84,15 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
     }
 
     pub fn set_channel(&mut self, ch: Channel, v: Velocity) {
-        //TODO set channels
+        let i = ch.index() as usize;
+        if i < C {
+            for s in 0..N {
+                if let Some(slot) = &mut self.slots[s] {
+                    if slot.channels[i] > U7::MIN {
+                        slot.channels[i] = v;
+                    }
+                }
+            }
+        }
     }
 }

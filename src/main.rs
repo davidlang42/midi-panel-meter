@@ -43,6 +43,7 @@ fn main() {
                 // midi connected, show midi panel
                 let mut panel = PanelMeter::new();
                 while let Ok(message) = midi.read() {
+                    //TODO need to figure out a way to handle mulitple messages async then update the screen at regular intervals ~120Hz, because many midi messages make it lag
                     panel.handle(message);
                     panel.draw(&mut canvas);
                     canvas = matrix.swap(canvas);

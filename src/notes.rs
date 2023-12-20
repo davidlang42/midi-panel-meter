@@ -49,6 +49,10 @@ impl<const C: usize> NoteSlot<C> {
         }
         scales
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.channels.iter().all(|v| *v == U7::MIN)
+    }
 }
 
 pub struct NoteSlots<'a, const N: usize, const C: usize> {
@@ -69,28 +73,91 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
     }
 
     pub fn draw(&self, canvas: &mut LedCanvas, first_column: i32) {
-        for i in 0..N {
-            if let Some(slot) = &self.slots[i] {
-                slot.draw(canvas, first_column + i as i32, self.colors);
+        for s in 0..N {
+            if let Some(slot) = &self.slots[s] {
+                slot.draw(canvas, first_column + s as i32, self.colors);
             }
         }
     }
 
+    const MIN_NOTE: Note = Note::A0;
+    const MAX_NOTE: Note = Note::C8;
+
     pub fn set_note(&mut self, n: Note, ch: Channel, v: Velocity) {
-        //TODO set notes
-        // let i = ch.index() as usize;
-        // if i < C {
-        // }
+        let c = ch.index() as usize;
+        if c < C && n >= Self::MIN_NOTE && n <= Self::MAX_NOTE {
+            let s = if let Some(existing) = self.find_slot(n) {
+                // if note already exists, use that slot
+                existing
+            } else {
+                // find ideal slot by scaling all 88 piano notes into the number of slots
+                let ideal = (N * (n as usize - Self::MIN_NOTE as usize)) / (Self::MAX_NOTE as usize - Self::MIN_NOTE as usize + 1);
+                // create a slot for this note (moving others if nessesary)
+                self.create_slot(n, ideal)
+            };
+            // update slot
+            self.slots[s].as_mut().unwrap().channels[c] = v;
+            if self.slots[s].as_ref().unwrap().is_empty() {
+                self.slots[s] = None;
+            }
+        }
     }
 
+    fn find_slot(&mut self, n: Note) -> Option<usize> {
+        for s in 0..N {
+            if let Some(existing) = &mut self.slots[s] {
+                if existing.note == n {
+                    return Some(s);
+                }
+            }
+        }
+        None
+    }
+
+    fn create_slot(&mut self, n: Note, ideal: usize) -> usize {
+        todo!()
+        //     if self.slots[i].is_none() {
+        //         // if ideal slot is empty, take it
+        //         if v != U7::MIN {
+        //             let channels = [0; C];
+        //             channels[i] = v;
+        //             self.slots[i] = Some(NoteSlot {
+        //                 note: n,
+        //                 channels
+        //             });
+        //         }
+        //     } else {
+        //         // find or create slot for this note
+        //         let existing = self.find_or_create_slot(n);
+        //         existing.channels[i] = v;
+        //         self.remove_if_empty(i);
+        //     }
+        // }
+    }
+    /*otherwise look at what note is in the slot and move up if the new note is higher/down if the new note is lower
+If higher and it keeps being higher, keep moving up until free slot, if lower and keeps being lower keep moving down until free slot
+If you up and find a higher note than new (or down and find a lower note than new) without finding a gap, shift the notes up/down to make a free slot
+If shifting requires going past upper or lower bound, shift others the other direction instead
+Only if all slots are full of unique notes, overwrite whatever note is in slot where the new note should go (based on ordering rules above)
+If a note on matches an existing slot taken (but in a new channel) then add that channel to the taken slot (with its new velocity as well)
+If a note on matches an existing slot taken (in an existing channel) then update that channel in the taken slot with its new velocity, also do this if key/channel pressure message is sent
+When a note is off, find that note in a slot, and remove the channel which went off, if all channels removed, free slot
+When rendering the column, scale the velocity as above for each channel and "overlap" them by combining colours
+ */
+
     pub fn set_channel(&mut self, ch: Channel, v: Velocity) {
-        let i = ch.index() as usize;
-        if i < C {
+        let c = ch.index() as usize;
+        if c < C {
             for s in 0..N {
+                let mut delete = false;
                 if let Some(slot) = &mut self.slots[s] {
-                    if slot.channels[i] > U7::MIN {
-                        slot.channels[i] = v;
+                    if slot.channels[c] > U7::MIN {
+                        slot.channels[c] = v;
+                        delete = slot.is_empty();
                     }
+                }
+                if delete {
+                    self.slots[s] = None;
                 }
             }
         }

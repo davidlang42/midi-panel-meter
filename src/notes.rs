@@ -9,7 +9,19 @@ pub struct NoteSlot<const C: usize> {
     pub channels: [Velocity; C]
 }
 
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum Direction {
+    None, Up, Down
+}
+
 impl<const C: usize> NoteSlot<C> {
+    pub fn new(n: Note) -> Self {
+        Self {
+            note: n,
+            channels: [U7::MIN; C]
+        }
+    }
+
     const BLANK: LedColor = LedColor { red: 0, green: 0, blue: 0 };
 
     pub fn draw(&self, canvas: &mut LedCanvas, x: i32, colors: &[LedColor; C]) {
@@ -93,7 +105,9 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                 // find ideal slot by scaling all 88 piano notes into the number of slots
                 let ideal = (N * (n as usize - Self::MIN_NOTE as usize)) / (Self::MAX_NOTE as usize - Self::MIN_NOTE as usize + 1);
                 // create a slot for this note (moving others if nessesary)
-                self.create_slot(n, ideal)
+                let index = self.make_free_slot(n, ideal, Direction::None);
+                self.slots[index] = Some(NoteSlot::new(n));
+                index
             };
             // update slot
             self.slots[s].as_mut().unwrap().channels[c] = v;
@@ -114,36 +128,62 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         None
     }
 
-    fn create_slot(&mut self, n: Note, ideal: usize) -> usize {
-        todo!()
-        //     if self.slots[i].is_none() {
-        //         // if ideal slot is empty, take it
-        //         if v != U7::MIN {
-        //             let channels = [0; C];
-        //             channels[i] = v;
-        //             self.slots[i] = Some(NoteSlot {
-        //                 note: n,
-        //                 channels
-        //             });
-        //         }
-        //     } else {
-        //         // find or create slot for this note
-        //         let existing = self.find_or_create_slot(n);
-        //         existing.channels[i] = v;
-        //         self.remove_if_empty(i);
-        //     }
-        // }
+    fn make_free_slot(&mut self, n: Note, ideal: usize, previous: Direction) -> usize {
+        if let Some(existing) = &self.slots[ideal] {
+            if n > existing.note {
+                // we need to move up
+                if previous == Direction::Down {
+                    // put it here
+                    if self.shift_down(ideal) {
+                        // shifted others down
+                        ideal
+                    } else if self.shift_up(ideal + 1) {//TODO check bounds
+                        // shifted others up
+                        ideal + 1
+                    } else {
+                        // slots full, therefore overwrite
+                        ideal
+                    }
+                } else {
+                    // keep moving up
+                    //TODO check bounds
+                    self.make_free_slot(n, ideal + 1, Direction::Up)
+                }
+            } else if existing.note < n {
+                // we need to move down
+                if previous == Direction::Up {
+                    // put it here
+                    if self.shift_up(ideal) {
+                        // shifted others up
+                        ideal
+                    } else if self.shift_down(ideal - 1) {//TODO check bounds
+                        // shifted others down
+                        ideal - 1
+                    } else {
+                        // slots full, therefore overwrite
+                        ideal
+                    }
+                } else {
+                    // keep moving down
+                    //TODO check bounds
+                    self.make_free_slot(n, ideal - 1, Direction::Down)
+                }
+            } else {
+                panic!("Tried to create a slot for a note that exists")
+            }
+        } else {
+            // empty, use this slot
+            ideal
+        }
     }
-    /*otherwise look at what note is in the slot and move up if the new note is higher/down if the new note is lower
-If higher and it keeps being higher, keep moving up until free slot, if lower and keeps being lower keep moving down until free slot
-If you up and find a higher note than new (or down and find a lower note than new) without finding a gap, shift the notes up/down to make a free slot
-If shifting requires going past upper or lower bound, shift others the other direction instead
-Only if all slots are full of unique notes, overwrite whatever note is in slot where the new note should go (based on ordering rules above)
-If a note on matches an existing slot taken (but in a new channel) then add that channel to the taken slot (with its new velocity as well)
-If a note on matches an existing slot taken (in an existing channel) then update that channel in the taken slot with its new velocity, also do this if key/channel pressure message is sent
-When a note is off, find that note in a slot, and remove the channel which went off, if all channels removed, free slot
-When rendering the column, scale the velocity as above for each channel and "overlap" them by combining colours
- */
+
+    fn shift_up(&mut self, i: usize) -> bool {
+        todo!()
+    }
+
+    fn shift_down(&mut self, i: usize) -> bool {
+        todo!()
+    }
 
     pub fn set_channel(&mut self, ch: Channel, v: Velocity) {
         let c = ch.index() as usize;

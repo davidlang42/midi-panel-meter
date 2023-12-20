@@ -1,9 +1,9 @@
-mod note_slot;
-mod panel_meter;
+mod notes;
+mod meter;
 mod midi;
 mod helper;
 
-use panel_meter::PanelMeter;
+use meter::PanelMeter;
 use midi::InputDevice;
 use rpi_led_matrix::{LedMatrix, LedColor, LedFont, LedMatrixOptions};
 use chrono::Local;

@@ -3,11 +3,11 @@ use wmidi::{U7, MidiMessage, ControlFunction};
 use crate::midi;
 use crate::helper::scale;
 
-use super::note_slot::NoteSlot;
+use super::notes::NoteSlots;
 
 pub struct PanelMeter {
     expression_cc: [U7; Self::MIDI_CHANNELS],
-    notes: [Option<NoteSlot>; Self::NOTE_SLOTS],
+    notes: NoteSlots<'static, {Self::NOTE_SLOTS}, {Self::MIDI_CHANNELS}>,
     damper_cc: [bool; Self::MIDI_CHANNELS],
     tick: usize
 }
@@ -18,13 +18,9 @@ impl PanelMeter {
 
     pub fn new() -> Self {
         let zero: U7 = 0.try_into().unwrap();
-        let mut notes = Vec::new();
-        for _ in 0..20 {
-            notes.push(None);
-        }
         Self {
             expression_cc: [zero; Self::MIDI_CHANNELS],
-            notes: notes.try_into().unwrap(),
+            notes: NoteSlots::new(&Self::CH_COLORS),
             damper_cc: [false; Self::MIDI_CHANNELS],
             tick: 0
         }
@@ -52,14 +48,17 @@ impl PanelMeter {
                     self.expression_cc[i] = v;
                 }
             },
-            MidiMessage::ChannelPressure(ch, v) => {
-                //TODO
-            },
             MidiMessage::NoteOn(ch, n, v) => {
-                //TODO
+                self.notes.set_note(n, ch, v);
             },
-            MidiMessage::NoteOff(ch, n, v) => {
-                //TODO
+            MidiMessage::NoteOff(ch, n, _) => {
+                self.notes.set_note(n, ch, U7::MIN);
+            },
+            MidiMessage::PolyphonicKeyPressure(ch, n, v) => {
+                self.notes.set_note(n, ch, v);
+            },
+            MidiMessage::ChannelPressure(ch, v) => {
+                self.notes.set_channel(ch, v);
             },
             _ => { }
         }
@@ -82,11 +81,7 @@ impl PanelMeter {
         }
         // notes in the middle
         const FIRST_NOTE_COL: i32 = 4;
-        for i in 0..self.notes.len() {
-            if let Some(note) = &self.notes[i] {
-                note.draw(canvas, FIRST_NOTE_COL + i as i32);
-            }
-        }
+        self.notes.draw(canvas, FIRST_NOTE_COL);
         // RHS damper pedal
         const FIRST_DAMP_COL: i32 = 29;
         for i in 0..self.damper_cc.len() {

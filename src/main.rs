@@ -1,6 +1,7 @@
 mod note_slot;
 mod panel_meter;
 mod midi;
+mod helper;
 
 use panel_meter::PanelMeter;
 use midi::InputDevice;

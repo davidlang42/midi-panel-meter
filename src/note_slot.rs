@@ -1,5 +1,5 @@
 use std::iter::Map;
-use rpi_led_matrix::{LedCanvas, LedColor};
+use rpi_led_matrix::LedCanvas;
 
 use wmidi::{Note, Velocity, Channel};
 

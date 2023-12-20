@@ -92,6 +92,24 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         }
     }
 
+    pub fn set_channel(&mut self, ch: Channel, v: Velocity) {
+        let c = ch.index() as usize;
+        if c < C {
+            for s in 0..N {
+                let mut delete = false;
+                if let Some(slot) = &mut self.slots[s] {
+                    if slot.channels[c] > U7::MIN {
+                        slot.channels[c] = v;
+                        delete = slot.is_empty();
+                    }
+                }
+                if delete {
+                    self.slots[s] = None;
+                }
+            }
+        }
+    }
+
     const MIN_NOTE: Note = Note::A0;
     const MAX_NOTE: Note = Note::C8;
 
@@ -132,12 +150,12 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         if let Some(existing) = &self.slots[ideal] {
             if n > existing.note {
                 // we need to move up
-                if previous == Direction::Down {
+                if ideal == N - 1 || previous == Direction::Down {
                     // put it here
                     if self.shift_down(ideal) {
                         // shifted others down
                         ideal
-                    } else if self.shift_up(ideal + 1) {//TODO check bounds
+                    } else if ideal < N - 1 && self.shift_up(ideal + 1) {
                         // shifted others up
                         ideal + 1
                     } else {
@@ -146,17 +164,16 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                     }
                 } else {
                     // keep moving up
-                    //TODO check bounds
                     self.make_free_slot(n, ideal + 1, Direction::Up)
                 }
             } else if existing.note < n {
                 // we need to move down
-                if previous == Direction::Up {
+                if ideal == 0 || previous == Direction::Up {
                     // put it here
                     if self.shift_up(ideal) {
                         // shifted others up
                         ideal
-                    } else if self.shift_down(ideal - 1) {//TODO check bounds
+                    } else if ideal > 0 && self.shift_down(ideal - 1) {
                         // shifted others down
                         ideal - 1
                     } else {
@@ -165,7 +182,6 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                     }
                 } else {
                     // keep moving down
-                    //TODO check bounds
                     self.make_free_slot(n, ideal - 1, Direction::Down)
                 }
             } else {
@@ -183,23 +199,5 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
 
     fn shift_down(&mut self, i: usize) -> bool {
         todo!()
-    }
-
-    pub fn set_channel(&mut self, ch: Channel, v: Velocity) {
-        let c = ch.index() as usize;
-        if c < C {
-            for s in 0..N {
-                let mut delete = false;
-                if let Some(slot) = &mut self.slots[s] {
-                    if slot.channels[c] > U7::MIN {
-                        slot.channels[c] = v;
-                        delete = slot.is_empty();
-                    }
-                }
-                if delete {
-                    self.slots[s] = None;
-                }
-            }
-        }
     }
 }

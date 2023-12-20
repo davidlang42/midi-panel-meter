@@ -5,11 +5,11 @@ use crate::midi;
 use super::note_slot::NoteSlot;
 
 const MIDI_CHANNELS: usize = 16;
+const NOTE_SLOTS: usize = 24;
 
 pub struct PanelMeter {
     expression_cc: [U7; MIDI_CHANNELS],
-    volume_cc: [U7; MIDI_CHANNELS],
-    notes: [Option<NoteSlot>; 20],
+    notes: [Option<NoteSlot>; NOTE_SLOTS],
     damper_cc: [bool; MIDI_CHANNELS],
     tick: usize
 }
@@ -23,7 +23,6 @@ impl PanelMeter {
         }
         Self {
             expression_cc: [zero; MIDI_CHANNELS],
-            volume_cc: [zero; MIDI_CHANNELS],
             notes: notes.try_into().unwrap(),
             damper_cc: [false; MIDI_CHANNELS],
             tick: 0
@@ -46,9 +45,6 @@ impl PanelMeter {
             MidiMessage::ControlChange(ch, ControlFunction::EXPRESSION_CONTROLLER, v) => {
                 self.expression_cc[ch.index() as usize] = v;
             },
-            MidiMessage::ControlChange(ch, ControlFunction::CHANNEL_VOLUME, v) => {
-                self.volume_cc[ch.index() as usize] = v;
-            },
             _ => {
                 //TODO handle notes
             }
@@ -66,12 +62,8 @@ impl PanelMeter {
         Self::draw_value(canvas, self.expression_cc[0], 0, &Self::CH1);
         Self::draw_value(canvas, self.expression_cc[1], 1, &Self::CH2);
         Self::draw_value(canvas, self.expression_cc[2], 2, &Self::CH3);
-        // LHS volume pedal
-        Self::draw_value(canvas, self.volume_cc[0], 4, &Self::CH1);
-        Self::draw_value(canvas, self.volume_cc[1], 5, &Self::CH2);
-        Self::draw_value(canvas, self.volume_cc[2], 6, &Self::CH3);
         // notes in the middle
-        const OFFSET: i32 = 8;
+        const OFFSET: i32 = 4;
         for i in 0..self.notes.len() {
             if let Some(note) = &self.notes[i] {
                 note.draw(canvas, OFFSET + i as i32);

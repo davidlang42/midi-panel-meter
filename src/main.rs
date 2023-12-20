@@ -58,7 +58,7 @@ fn main() {
     }
 }
 
-fn list_files(root: &str, prefix: &str) -> Result<Vec<String>, Box<dyn Error>> {
+fn list_files(root: &str, prefix: &str) -> Result<Vec<String>, Box<dyn Error>> { //TODO doesn't find midi device when running with sudo (or on startup)
     let md = fs::metadata(root)?;
     if md.is_dir() {
         let mut files = Vec::new();

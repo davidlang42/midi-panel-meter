@@ -60,4 +60,43 @@ sudo apt install gcc-arm-linux-gnueabihf
 rustup target add armv7-unknown-linux-gnueabihf
 cargo check --target=armv7-unknown-linux-gnueabihf
 
-# TODO: add second wifi, run on startup
+# add second wifi (eg. phone hotspot)
+sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+# append
+network={
+     ssid="<SSID>"
+     psk="<PASSWORD>"
+}
+# save
+
+# setup run on startup
+nano ~/run_on_startup
+# type
+#!/usr/bin/bash
+cd /home/pi/midi-panel-meter # must be in this dir to find 6x9.bdf
+./target/release/midi-panel-meter
+# save
+chmod a+x ~/run_on_startup
+nano ~/shutdown_on_temp
+# type
+#!/usr/bin/bash
+set -e
+MAX="80"
+while [ true ]
+do
+    SENSOR="`vcgencmd measure_temp | cut -d "=" -f2 | cut -d "'" -f1`"
+    TEMP="`printf "%.0f\n" ${SENSOR}`"
+    if [ "${TEMP}" -gt "${MAX}" ]
+    then
+        /usr/bin/logger "Shutting down due to cpu temp ${TEMP}."
+        sudo shutdown -h now
+    fi
+    sleep 60
+done
+# save
+chmod a+x ~/shutdown_on_temp
+sudo nano /etc/rc.local
+# append this before the last line:
+/home/pi/run_on_startup &
+/home/pi/shutdown_on_temp &
+# save

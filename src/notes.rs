@@ -166,7 +166,7 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                     // keep moving up
                     self.make_free_slot(n, ideal + 1, Direction::Up)
                 }
-            } else if existing.note < n {
+            } else if n < existing.note {
                 // we need to move down
                 if ideal == 0 || previous == Direction::Up {
                     // put it here

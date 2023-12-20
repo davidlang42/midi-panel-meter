@@ -52,9 +52,16 @@ impl PanelMeter {
                     self.expression_cc[i] = v;
                 }
             },
-            _ => {
-                //TODO handle notes
-            }
+            MidiMessage::ChannelPressure(ch, v) => {
+                //TODO
+            },
+            MidiMessage::NoteOn(ch, n, v) => {
+                //TODO
+            },
+            MidiMessage::NoteOff(ch, n, v) => {
+                //TODO
+            },
+            _ => { }
         }
     }
 

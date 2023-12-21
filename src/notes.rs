@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rpi_led_matrix::{LedCanvas, LedColor};
 use wmidi::{Note, Velocity, Channel, U7};
 
@@ -70,7 +72,8 @@ impl<const C: usize> NoteSlot<C> {
 pub struct NoteSlots<'a, const N: usize, const C: usize> {
     slots: [Option<NoteSlot<C>>; N],
     colors: &'a [LedColor; C],
-    damper: [bool; C]
+    damper: [bool; C],
+    when_damper_released: [HashMap<Note, Velocity>; C]
 }
 
 impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
@@ -82,7 +85,8 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         Self {
             slots: slots.try_into().unwrap(),
             colors,
-            damper: [false; C]
+            damper: [false; C],
+            when_damper_released: HashMap::new()
         }
     }
 
@@ -116,6 +120,11 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         let c = ch.index() as usize;
         if c < C {
             self.damper[c] = damper;
+            if !damper {
+                for (n, v) in self.when_damper_released[c].drain() {
+                    self.process_note(n, c, v);
+                }
+            }
         }
     }
 
@@ -125,24 +134,36 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
     pub fn set_note(&mut self, n: Note, ch: Channel, v: Velocity) {
         let c = ch.index() as usize;
         if c < C && n >= Self::MIN_NOTE && n <= Self::MAX_NOTE {
-            let s = if let Some(existing) = self.find_slot(n) {
-                // if note already exists, use that slot
-                existing
-            } else {
-                // find ideal slot by scaling all 88 piano notes into the number of slots
-                let ideal = (N * (n as usize - Self::MIN_NOTE as usize)) / (Self::MAX_NOTE as usize - Self::MIN_NOTE as usize + 1);
-                // move the ideal to be valid compared to other notes already existing
-                let valid = self.valid_relative_to_existing(ideal, n);
-                // create a slot for this note (moving others if nessesary)
-                let index = self.make_free_slot(n, valid, Direction::None);
-                self.slots[index] = Some(NoteSlot::new(n));
-                index
-            };
-            // update slot
-            self.slots[s].as_mut().unwrap().channels[c] = v;
-            if self.slots[s].as_ref().unwrap().is_empty() {
-                self.slots[s] = None;
+            if self.damper[c] {
+                if v == U7::MIN {
+                    // delay note off until damper released
+                    self.when_damper_released[c].insert(n, v);
+                    return;
+                }
+                //TODO ideally also sum up to max if multiple notes on while damper down
             }
+            self.process_note(n, c, v);
+        }
+    }
+
+    fn process_note(&mut self, n: Note, c: usize, v: Velocity) {
+        let s = if let Some(existing) = self.find_slot(n) {
+            // if note already exists, use that slot
+            existing
+        } else {
+            // find ideal slot by scaling all 88 piano notes into the number of slots
+            let ideal = (N * (n as usize - Self::MIN_NOTE as usize)) / (Self::MAX_NOTE as usize - Self::MIN_NOTE as usize + 1);
+            // move the ideal to be valid compared to other notes already existing
+            let valid = self.valid_relative_to_existing(ideal, n);
+            // create a slot for this note (moving others if nessesary)
+            let index = self.make_free_slot(n, valid, Direction::None);
+            self.slots[index] = Some(NoteSlot::new(n));
+            index
+        };
+        // update slot
+        self.slots[s].as_mut().unwrap().channels[c] = v;
+        if self.slots[s].as_ref().unwrap().is_empty() {
+            self.slots[s] = None;
         }
     }
 

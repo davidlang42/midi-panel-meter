@@ -36,8 +36,6 @@ impl PanelMeter {
                 };
             },
             MidiMessage::ControlChange(ch, ControlFunction::DAMPER_PEDAL, v) => {
-                //TODO use the damper pedal to delay any note off messages
-                //TODO ideally also sum up to max if multiple notes on while damper down
                 let v_u8: u8 = v.into();
                 let damper = v_u8 > 64;
                 self.notes.set_damper(ch, damper);

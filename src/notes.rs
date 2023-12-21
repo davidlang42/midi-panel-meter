@@ -82,11 +82,15 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         for _ in 0..N {
             slots.push(None);
         }
+        let mut when_damper_released = Vec::new();
+        for _ in 0..C {
+            when_damper_released.push(HashMap::new());
+        }
         Self {
             slots: slots.try_into().unwrap(),
             colors,
             damper: [false; C],
-            when_damper_released: HashMap::new()
+            when_damper_released: when_damper_released.try_into().unwrap()
         }
     }
 
@@ -121,7 +125,8 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         if c < C {
             self.damper[c] = damper;
             if !damper {
-                for (n, v) in self.when_damper_released[c].drain() {
+                let vec: Vec<_> = self.when_damper_released[c].drain().collect();
+                for (n, v) in vec {
                     self.process_note(n, c, v);
                 }
             }

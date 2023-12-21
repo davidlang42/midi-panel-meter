@@ -127,7 +127,7 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
             if !damper {
                 let vec: Vec<_> = self.when_damper_released[c].drain().collect();
                 for (n, v) in vec {
-                    self.process_note(n, c, v);
+                    self.process_note(n, c, v, false);
                 }
             }
         }
@@ -143,20 +143,32 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                 if v == U7::MIN {
                     // delay note off until damper released
                     self.when_damper_released[c].insert(n, v);
-                    return;
                 } else {
-                    // remove delayed off if note repressed
-                    self.when_damper_released[c].remove(&n);
+                    // keep only the last press when damper released
+                    self.when_damper_released[c].insert(n, v);
+                    // but show the sum of them now
+                    self.process_note(n, c, v, true);
                 }
-                //TODO ideally also sum up to max if multiple notes on while damper down
+            } else {
+                // show the note as is
+                self.process_note(n, c, v, false);
             }
-            self.process_note(n, c, v);
         }
     }
 
-    fn process_note(&mut self, n: Note, c: usize, v: Velocity) {
+    fn process_note(&mut self, n: Note, c: usize, mut v: Velocity, sum_existing_v: bool) {
         let s = if let Some(existing) = self.find_slot(n) {
             // if note already exists, use that slot
+            if sum_existing_v {
+                let v_u8: u8 = v.into();
+                let existing_u8: u8 = self.slots[existing].as_ref().unwrap().channels[c].into();
+                let sum = v_u8 + existing_u8;
+                v = if sum >= U7::MAX.into() {
+                    U7::MAX
+                } else {
+                    U7::from_u8_lossy(sum)
+                }
+            }
             existing
         } else {
             // find ideal slot by scaling all 88 piano notes into the number of slots

@@ -16,7 +16,7 @@ use std::error::Error;
 use std::time::Instant;
 
 const CLOCK_UPDATE_MS: u128 = 1000;
-const METER_UPDATE_MS: u128 = 100;
+const METER_UPDATE_MS: u128 = 10; //100Hz
 
 fn main() {
     // set up screen
@@ -45,7 +45,7 @@ fn main() {
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
             match NonBlockingInputDevice::open(&device, true) {
                 Ok(midi) => canvas = show_midi_panel(midi, canvas, &matrix),
-                Err(err) => println!("Error opening MIDI device: {}", err)
+                Err(err) => println!("Error opening MIDI device: {}", err) //TODO Permission denied (os error 13) when running with sudo (or on startup)
             }
         }
         let ms = updated.elapsed().as_millis();
@@ -55,7 +55,7 @@ fn main() {
     }
 }
 
-fn list_files(root: &str, prefix: &str) -> Result<Vec<String>, Box<dyn Error>> { //TODO doesn't find midi device when running with sudo (or on startup)
+fn list_files(root: &str, prefix: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let md = fs::metadata(root)?;
     if md.is_dir() {
         let mut files = Vec::new();

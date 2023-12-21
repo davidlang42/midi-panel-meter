@@ -69,7 +69,8 @@ impl<const C: usize> NoteSlot<C> {
 
 pub struct NoteSlots<'a, const N: usize, const C: usize> {
     slots: [Option<NoteSlot<C>>; N],
-    colors: &'a [LedColor; C]
+    colors: &'a [LedColor; C],
+    damper: [bool; C]
 }
 
 impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
@@ -80,7 +81,8 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
         }
         Self {
             slots: slots.try_into().unwrap(),
-            colors
+            colors,
+            damper: [false; C]
         }
     }
 
@@ -107,6 +109,13 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                     self.slots[s] = None;
                 }
             }
+        }
+    }
+
+    pub fn set_damper(&mut self, ch: Channel, damper: bool) {
+        let c = ch.index() as usize;
+        if c < C {
+            self.damper[c] = damper;
         }
     }
 

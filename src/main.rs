@@ -4,7 +4,8 @@ mod midi;
 mod helper;
 
 use meter::PanelMeter;
-use midi::InputDevice;
+use midi::NonBlockingInputDevice;
+use rpi_led_matrix::LedCanvas;
 use rpi_led_matrix::{LedMatrix, LedColor, LedFont, LedMatrixOptions};
 use chrono::Local;
 use std::path::Path;
@@ -13,6 +14,9 @@ use std::thread;
 use std::fs;
 use std::error::Error;
 use std::time::Instant;
+
+const CLOCK_UPDATE_MS: u128 = 1000;
+const METER_UPDATE_MS: u128 = 100;
 
 fn main() {
     // set up screen
@@ -39,21 +43,14 @@ fn main() {
         canvas.draw_text(&font, &time, 1, 11, &color, 0, false);
         canvas = matrix.swap(canvas);
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
-            if let Ok(mut midi) = InputDevice::open(&device, true) {
-                // midi connected, show midi panel
-                let mut panel = PanelMeter::new();
-                while let Ok(message) = midi.read() {
-                    //TODO need to figure out a way to handle mulitple messages async then update the screen at regular intervals ~120Hz, because many midi messages make it lag
-                    panel.handle(message);
-                    panel.draw(&mut canvas);
-                    canvas = matrix.swap(canvas);
-                }
-                // midi disconnected, return to clock
+            match NonBlockingInputDevice::open(&device, true) {
+                Ok(midi) => canvas = show_midi_panel(midi, canvas, &matrix),
+                Err(err) => println!("Error opening MIDI device: {}", err)
             }
         }
         let ms = updated.elapsed().as_millis();
-        if ms < 1000 {
-            thread::sleep(Duration::from_millis((1000 - ms).try_into().unwrap()));
+        if ms < CLOCK_UPDATE_MS {
+            thread::sleep(Duration::from_millis((CLOCK_UPDATE_MS - ms).try_into().unwrap()));
         }
     }
 }
@@ -73,4 +70,27 @@ fn list_files(root: &str, prefix: &str) -> Result<Vec<String>, Box<dyn Error>> {
     } else {
         Ok(vec![root.to_string()])
     }
+}
+
+fn show_midi_panel(mut midi: NonBlockingInputDevice, mut canvas: LedCanvas, matrix: &LedMatrix) -> LedCanvas {
+    let mut panel = PanelMeter::new();
+    panel.draw(&mut canvas);
+    canvas = matrix.swap(canvas);
+    while midi.is_connected() {
+        let updated = Instant::now();
+        let mut changed = false;
+        while let Some(message) = midi.read() {
+            panel.handle(message);
+            changed = true;
+        }
+        if changed {
+            panel.draw(&mut canvas);
+            canvas = matrix.swap(canvas);
+        }
+        let ms = updated.elapsed().as_millis();
+        if ms < METER_UPDATE_MS {
+            thread::sleep(Duration::from_millis((METER_UPDATE_MS - ms).try_into().unwrap()));
+        }
+    }
+    canvas
 }

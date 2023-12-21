@@ -144,6 +144,9 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                     // delay note off until damper released
                     self.when_damper_released[c].insert(n, v);
                     return;
+                } else {
+                    // remove delayed off if note repressed
+                    self.when_damper_released[c].remove(&n);
                 }
                 //TODO ideally also sum up to max if multiple notes on while damper down
             }

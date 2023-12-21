@@ -121,13 +121,11 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                 existing
             } else {
                 // find ideal slot by scaling all 88 piano notes into the number of slots
-                //TODO need to adjust the ideal:
-                // if 1 note exists: move ideal up/down so its on the correct side of the existing 1 note
-                // if 2 notes exist: move ideal to be between the 2 nots if applicable, or the correct side of the 1 note if greater than or less than both
-                // if 2 or more notes exist: find the 2 notes which bound the new note and follow "if 2 notes exist"
                 let ideal = (N * (n as usize - Self::MIN_NOTE as usize)) / (Self::MAX_NOTE as usize - Self::MIN_NOTE as usize + 1);
+                // move the ideal to be valid compared to other notes already existing
+                let valid = self.valid_relative_to_existing(ideal, n);
                 // create a slot for this note (moving others if nessesary)
-                let index = self.make_free_slot(n, ideal, Direction::None);
+                let index = self.make_free_slot(n, valid, Direction::None);
                 self.slots[index] = Some(NoteSlot::new(n));
                 index
             };
@@ -137,6 +135,35 @@ impl<'a, const N: usize, const C: usize> NoteSlots<'a, N, C> {
                 self.slots[s] = None;
             }
         }
+    }
+
+    fn valid_relative_to_existing(&self, ideal: usize, n: Note) -> usize {
+        let mut valid = None;
+        for i in (ideal + 1)..N {
+            if let Some(slot) = &self.slots[i] {
+                if slot.note < n {
+                    valid = Some(i);
+                } else if slot.note > n {
+                    break;
+                }
+            }
+        }
+        if let Some(v) = valid {
+            return v;
+        }
+        for i in (0..ideal).rev() {
+            if let Some(slot) = &self.slots[i] {
+                if slot.note > n {
+                    valid = Some(i);
+                } else if slot.note < n {
+                    break;
+                }
+            }
+        }
+        if let Some(v) = valid {
+            return v;
+        }
+        ideal
     }
 
     fn find_slot(&mut self, n: Note) -> Option<usize> {

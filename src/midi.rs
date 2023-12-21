@@ -1,10 +1,6 @@
-use std::fs::File;
-use std::sync::mpsc;
+use std::collections::VecDeque;
 use std::fs;
-use std::thread;
-use std::io::Read;
 use std::error::Error;
-use std::thread::JoinHandle;
 use wmidi::FromBytesError;
 use wmidi::MidiMessage;
 use wmidi::U7;
@@ -13,7 +9,11 @@ use nonblock::NonBlockingReader;
 pub const TICKS_PER_BEAT: usize = 24;
 
 pub struct NonBlockingInputDevice {
-    reader: NonBlockingReader<File>
+    reader: NonBlockingReader<fs::File>,
+    bytes: Vec<u8>,
+    messages: VecDeque<MidiMessage<'static>>,
+    include_clock_ticks: bool,
+    rewrite_note_zero_as_off: bool
 }
 
 impl NonBlockingInputDevice {
@@ -22,59 +22,50 @@ impl NonBlockingInputDevice {
     }
 
     pub fn open(midi_in: &str, include_clock_ticks: bool) -> Result<Self, Box<dyn Error>> {
-        todo!()
-        // let (tx, rx) = mpsc::channel();
-        // let mut input = fs::File::options().read(true).open(midi_in).map_err(|e| format!("Cannot open MIDI IN '{}': {}", midi_in, e))?;
-        // let join_handle = thread::Builder::new().name(format!("midi-in")).spawn(move || Self::read_into_queue(&mut input, tx, include_clock_ticks, true))?;
-        // Ok(Self {
-        //     receiver: rx,
-        //     threads: vec![join_handle]
-        // })
+        let input = fs::File::options().read(true).open(midi_in).map_err(|e| format!("Cannot open MIDI IN '{}': {}", midi_in, e))?;
+        let reader = NonBlockingReader::from_fd(input)?;
+        Ok(Self {
+            reader,
+            bytes: Vec::new(),
+            messages: VecDeque::new(),
+            include_clock_ticks,
+            rewrite_note_zero_as_off: true
+        })
     }
 
-    pub fn read(&mut self) -> Option<MidiMessage<'static>> {
-        todo!()
-        // for thread in &self.threads {
-        //     if thread.is_finished() {
-        //         return Err("InputDevice thread finished".into());
-        //     }
-        // }
-        // self.receiver.recv().map_err(|e| e.into())
+    pub fn read(&mut self) -> Result<Option<MidiMessage<'static>>, Box<dyn Error>> {
+        let mut buf = Vec::new();
+        self.reader.read_available(&mut buf)?;
+        for byte in buf {
+            self.process(byte);
+        }
+        Ok(self.messages.pop_front())
     }
 
-    // fn read_into_queue(f: &mut fs::File, tx: mpsc::Sender<MidiMessage>, include_clock_ticks: bool, rewrite_note_zero_as_off: bool) {
-    //     let mut buf: [u8; 1] = [0; 1];
-    //     let mut bytes = Vec::new();
-    //     while f.read_exact(&mut buf).is_ok() {
-    //         bytes.push(buf[0]);
-    //         match MidiMessage::try_from(bytes.as_slice()) {
-    //             Ok(MidiMessage::TimingClock) if !include_clock_ticks => {
-    //                 // skip clock tick if not required
-    //                 bytes.clear();
-    //             },
-    //             Ok(MidiMessage::NoteOn(c, n, U7::MIN)) if rewrite_note_zero_as_off => {
-    //                 // some keyboards send NoteOn(velocity: 0) instead of NoteOff (eg. Kaysound MK-4902)
-    //                 if tx.send(MidiMessage::NoteOff(c, n, U7::MIN)).is_err() {
-    //                     panic!("Error rewriting NoteOn(0) as NoteOff to queue.");
-    //                 }
-    //                 bytes.clear();
-    //             },
-    //             Ok(message) => {
-    //                 // message complete, send to queue
-    //                 if tx.send(message.to_owned()).is_err() {
-    //                     panic!("Error sending to queue.");
-    //                 }
-    //                 bytes.clear();
-    //             },
-    //             Err(FromBytesError::NoBytes) | Err(FromBytesError::NoSysExEndByte) | Err(FromBytesError::NotEnoughBytes) => {
-    //                 // wait for more bytes
-    //             }, 
-    //             _ => {
-    //                 // invalid message, clear and wait for next message
-    //                 bytes.clear();
-    //             }
-    //         }
-    //     }
-    //     panic!("Input device has disconnected.");
-    // }
+    fn process(&mut self, byte: u8) {
+        self.bytes.push(byte);
+        match MidiMessage::try_from(self.bytes.as_slice()) {
+            Ok(MidiMessage::TimingClock) if !self.include_clock_ticks => {
+                // skip clock tick if not required
+                self.bytes.clear();
+            },
+            Ok(MidiMessage::NoteOn(c, n, U7::MIN)) if self.rewrite_note_zero_as_off => {
+                // some keyboards send NoteOn(velocity: 0) instead of NoteOff (eg. Kaysound MK-4902)
+                self.messages.push_back(MidiMessage::NoteOff(c, n, U7::MIN));
+                self.bytes.clear();
+            },
+            Ok(message) => {
+                // message complete
+                self.messages.push_back(message.to_owned());
+                self.bytes.clear();
+            },
+            Err(FromBytesError::NoBytes) | Err(FromBytesError::NoSysExEndByte) | Err(FromBytesError::NotEnoughBytes) => {
+                // wait for more bytes
+            }, 
+            _ => {
+                // invalid message, clear and wait for next message
+                self.bytes.clear();
+            }
+        }
+    }
 }

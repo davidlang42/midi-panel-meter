@@ -79,7 +79,13 @@ fn show_midi_panel(mut midi: NonBlockingInputDevice, mut canvas: LedCanvas, matr
     while midi.is_connected() {
         let updated = Instant::now();
         let mut changed = false;
-        while let Some(message) = midi.read() {
+        while let Some(message) = match midi.read() {
+            Ok(opt) => opt,
+            Err(err) => {
+                println!("Error reading MIDI device: {}", err);
+                return canvas;
+            }
+        } {
             panel.handle(message);
             changed = true;
         }

@@ -45,7 +45,7 @@ fn main() {
         if let Some(device) = list_files("/dev", "midi").unwrap().into_iter().next() {
             match NonBlockingInputDevice::open(&device, true) {
                 Ok(midi) => canvas = show_midi_panel(midi, canvas, &matrix),
-                Err(err) => println!("Error opening MIDI device: {}", err) //TODO Permission denied (os error 13) when running with sudo (or on startup)
+                Err(err) => println!("Error opening MIDI device: {}", err) // Permission denied (os error 13) when running with sudo, unless root is added to 'audio' group
             }
         }
         let ms = updated.elapsed().as_millis();

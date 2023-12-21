@@ -70,11 +70,12 @@ network={
 # save
 
 # setup run on startup
+sudo groupmod -aU root audio # to fix a permissions issue with sudo
 nano ~/run_on_startup
 # type
 #!/usr/bin/bash
 cd /home/pi/midi-panel-meter # must be in this dir to find 6x9.bdf
-./target/release/midi-panel-meter
+sudo ./target/release/midi-panel-meter # sudo to enable raw memory access for the led driver
 # save
 chmod a+x ~/run_on_startup
 nano ~/shutdown_on_temp

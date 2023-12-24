@@ -28,6 +28,29 @@ The following instructions describe how I set it up, which worked successfully f
 
 ## Assembly instructions
 1. Led panel wiring as per: https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/wiring.md
+
+| Label | Led pin* | Rpi pin^ |
+|-------|---------|---------|
+| R1    | 1       | 23      |
+| G1    | 2       | 13      |
+| B1    | 3       | 26      |
+|       | 4       |         |
+| R2    | 5       | 24      |
+| G2    | 6       | 21      |
+| B2    | 7       | 19      |
+|       | 8       |         |
+| A     | 9       | 15      |
+| B     | 10      | 16      |
+| C     | 11      | 18      |
+|       | 12      |         |
+| CLK   | 13      | 11      |
+| STB   | 14      | 7       |
+| OE    | 15      | 12      |
+| GND   | 16      | 6       |
+
+- *Pin 1 (top of ribbon) in top right looking at female header with notch on right, ribbon to the right
+- ^Pin 1 (square) in top left looking at top of board with sd card up and gpio right
+
 ![panel-wiring1](panel-wiring1.jpg)
 ![panel-wiring2](panel-wiring2.jpg)
 ![panel-wiring3](panel-wiring3.jpg)
